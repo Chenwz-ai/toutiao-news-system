@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Frontend dependencies and build output
+前端项目代码/xwzx-news/node_modules/
+前端项目代码/xwzx-news/dist/
+前端项目代码/xwzx-news/.env
+前端项目代码/xwzx-news/.env.*
+!前端项目代码/xwzx-news/.env.example
