@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.users import UserRegister, UserAuthResponse, UserInfoResponse
+
+from models.users import User
+from schemas.users import UserRegister, UserAuthResponse, UserInfoResponse, UserLogin
 from config.db_conf import get_db
 from crud import users
 from starlette import status
 
 from utills.response import success_response
+from utills.auth import get_current_user
 
 router = APIRouter(prefix="/api/user",tags=["users"])
 
@@ -30,5 +33,22 @@ async def register(user_data:UserRegister,db:AsyncSession = Depends(get_db)):
     #         }
     #     }
     # }
-    response_data = UserAuthResponse(token=token,userInfo=UserInfoResponse.model_validate( user))
+    response_data = UserAuthResponse(token=token,userInfo=UserInfoResponse.model_validate(user))
     return success_response(message="注册成功",data=response_data)
+
+@router.post("/login")
+async def login(user_data:UserLogin,db:AsyncSession = Depends(get_db)):
+    # 登录逻辑:1.验证用户名密码 2.生成token 3.返回结果
+    user = await users.authenticate_user(db,user_data.username,user_data.password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="用户名或密码错误")
+    token = await users.create_token(db,user.id)
+    response_data = UserAuthResponse(token=token,userInfo=UserInfoResponse.model_validate(user))
+
+
+    return success_response(message="登录成功",data=response_data)
+
+@router.get("/info")
+async def get_user_info(user:User = Depends(get_current_user)):
+    #1. 查token查用户,2.封装crud,3.功能整合成一个工具函数,4.路由导入使用:依赖注入的方式
+    return success_response(message="获取用户信息成功",data=UserInfoResponse.model_validate(user))

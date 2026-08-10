@@ -7,6 +7,10 @@ class UserRegister(BaseModel):
     username:str
     password:str
 
+class UserLogin(BaseModel):
+    username:str
+    password:str
+
 class UserInfoBase(BaseModel):
     """
     ⽤户信息基础数据模型
