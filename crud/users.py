@@ -1,11 +1,13 @@
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from fastapi import HTTPException
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from models.users import User, UserToken
-from schemas.users import UserRegister
+from schemas.users import UserRegister, UserUpdateRequest
 from utills import security
 
 #根据用户名查询数据库
@@ -64,6 +66,36 @@ async def get_user_by_token(db:AsyncSession,token:str):
     query = select(User).where(User.id == db_token.user_id)
     result = await db.execute(query)
     return result.scalar_one_or_none()
+
+#更新用户信息
+async def update_user(db:AsyncSession,username:str,user_data:UserUpdateRequest):
+    #user_data是pydantic定义的类,需要转换成dict
+    #没有设置值的字段,则不更新
+    query = update(User).where(User.username == username).values(**user_data.model_dump(
+        exclude_unset=True,
+        exclude_none=True
+    ))
+    result = await db.execute(query)
+    await db.commit()
+
+    #检查更新
+    if result.rowcount == 0:
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="用户不存在")
+    #获取更新后的用户信息
+    update_user = await get_user_by_username(db,username)
+    return update_user
+
+#修改密码:1.验证用户名密码 2.新密码加密 3.更新密码
+async def change_password(db:AsyncSession,user: User,old_password:str,new_password:str):
+    if not security.verify_password(old_password,user.password):
+        return False
+    hashed_new_password = security.get_hash_password(new_password)
+    user.password = hashed_new_password
+    db.add(user)#由SQLAlchemy真正接管user对象,确保可以提交,规避session过期或关闭导致不能提交的问题
+    await db.commit()
+    await db.refresh(user)
+    return True
+
 
 
 

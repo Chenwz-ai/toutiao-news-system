@@ -41,3 +41,17 @@ class UserAuthResponse(BaseModel):
          populate_by_name=True,
          from_attributes= True
      )
+
+
+#更新用户信息
+class UserUpdateRequest(BaseModel):
+    nickname:str = None
+    avatar:str = None
+    gender:str = None
+    bio:str = None
+    phone:str = None
+
+
+class UserChangePasswordRequest(BaseModel):
+    old_password:str = Field(...,description="旧密码",alias="oldPassword")
+    new_password:str = Field(...,description="新密码",alias="newPassword",min_length=6)
